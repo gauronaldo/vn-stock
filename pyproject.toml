@@ -38,6 +38,10 @@ src = [".", "src"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "NPY"]
 
+[tool.ruff.lint.per-file-ignores]
+# report.py holds Markdown templates whose lines are prose, not code
+"src/vnfactor/report.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"

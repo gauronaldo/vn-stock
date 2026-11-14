@@ -1,0 +1,5 @@
+strategy,basis,cagr,vol,sharpe,max_drawdown,months,excess_cagr,mean_turnover,mean_holdings
+composite,gross,0.114971,0.28344,0.530575,-0.419724,73,-0.00359,0.431784,20
+benchmark,gross,0.118561,0.29669,0.528349,-0.461639,73,0,0.143815,100
+composite,net,0.103604,0.283495,0.494208,-0.431291,73,-0.0112161,0.431784,20
+benchmark,net,0.11482,0.296684,0.517002,-0.462868,73,0,0.143815,100

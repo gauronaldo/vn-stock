@@ -232,7 +232,7 @@ Chạy trên giai đoạn nghiên cứu, mỗi lần đổi một yếu tố:
 
 - `lag_days` 45 so với 90.
 - Chi phí gấp đôi.
-- **Minh hoạ thiên lệch sống sót:** chạy lại với rổ "thành phần VN100 hiện tại áp ngược về quá khứ", so với rổ dựng theo quy tắc. `fhsc` không có VN100 (chỉ có VN30 và VNINDEX); rổ thay thế chờ chủ dự án quyết định trước giai đoạn 7.
+- **Minh hoạ thiên lệch sống sót:** chạy lại với rổ "thành phần VN100 hiện tại áp ngược về quá khứ", so với rổ dựng theo quy tắc. `fhsc` không có VN100 (chỉ có VN30 và VNINDEX). Rổ thay thế (agent chọn ngày 14/11/2026 theo chỉ đạo "build hết các giai đoạn, không cần đợi lệnh" của chủ dự án): 100 mã có trung vị giá trị giao dịch 126 phiên cao nhất tại phiên cuối dữ liệu, áp ngược về quá khứ (`docs/methodology.md`).
 
 ---
 

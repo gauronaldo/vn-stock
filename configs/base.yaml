@@ -120,4 +120,6 @@ ml:                               # fixed before any model is trained; no tuning
 robustness:
   lag_days_alt: 90
   cost_multiplier: 2.0
-  survivorship_index: null        # fhsc has no VN100 (audit); replacement pending owner decision
+  # fhsc has no VN100: stand-in = top-N symbols by traded value on the last session,
+  # applied to every past date (docs/methodology.md, Robustness)
+  survivorship_basket: current_liquid
