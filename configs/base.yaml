@@ -1,0 +1,123 @@
+# Single source of truth for every pipeline parameter (AGENTS.md section 5).
+# Dates, market cap method, traded value method and equity basis were fixed after the data
+# audit and approved by the owner on 2026-11-13 (docs/data_audit.md). They are frozen.
+
+paths:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  reports_dir: reports
+
+sources:                          # version 1 uses fhsc only (no ssi key)
+  listing: fhsc                   # current VNINDEX constituents, all on HOSE
+  prices: fhsc
+  traded_value: fhsc              # volume_history, available from 2021-08-02
+  shares: fhsc                    # current outstanding shares
+  fundamentals: fhsc
+
+ingest:
+  start_date: "2017-01-01"        # fhsc daily bars start on 2017-01-03 (audit A1)
+  end_date: "2026-10-30"          # last session used; fixed for reproducibility
+  request_interval_seconds: 1.0   # pause between sequential requests
+  max_retries: 5                  # exponential backoff on RateLimitError / NetworkError
+  backoff_base_seconds: 2.0
+  earliest_local_hour: 15         # downloads only after 15:00 Vietnam time
+  latest_local_hour: 21           # fhsc serves only until 21:00 Vietnam time
+  max_range_years: 5              # fhsc volume_history rejects longer ranges
+  fundamentals_top_n: 150         # fetch statements only for symbols ever in top-N by ADV
+  max_consecutive_failures: 5     # this many failed symbols in a row stops the run
+  skip_symbols: []                # symbols the source cannot serve; give the reason here
+  daily_limit: 0.07               # HOSE daily price limit, used only in the ingest summary
+  daily_limit_tolerance: 0.005    # slack for tick rounding when flagging returns
+
+calendar:
+  execution_lag_sessions: 1       # trade at close of session t+1
+  first_rebalance: "2018-01-31"   # first month-end with 252 sessions of history (270)
+  last_rebalance: "2026-08-31"    # last one whose forward return ends by ingest.end_date
+
+split:                            # 104 rebalance months: 73 research, 31 holdout
+  research_fraction: 0.7
+  holdout_start: "2024-02-01"     # rebalance dates on or after this day are holdout
+
+universe:
+  exchange: HOSE
+  candidates_index: VNINDEX       # current constituents; delisted symbols are missing
+  min_history_sessions: 252
+  liquidity_window: 126           # sessions, median daily traded value
+  min_trading_fraction: 0.8       # share of sessions with trades inside the liquidity window
+  top_n: 100
+
+traded_value:                     # daily traded value in VND, built at ingest (audit A2)
+  method: anchored_proxy
+  # From true_value_start: matched_value reported by the source.
+  # Before: close_adj * 1000 * volume / k, with k per symbol = median of
+  # (close_adj * 1000 * volume / matched_value) over its first anchor_sessions sessions
+  # that have matched_value. Removes price adjustments made after the anchor.
+  true_value_start: "2021-08-02"
+  anchor_sessions: 20
+
+fundamentals:
+  lag_days: 45                    # available_date = period_end + lag_days
+  ttm_quarters: 4
+  market_cap_method: current_shares   # adjusted close * current outstanding shares
+  equity_basis: total             # BS_EQUITY incl. minority interest, for bp and roe
+  roe_numerator: npat_total       # total net profit after tax, to match total equity
+  ep_numerator: npat_parent
+
+factors:
+  max_missing_fraction: 0.2       # factor is NaN if a window misses more than this share
+  definitions:                    # sign = hypothesis fixed before looking at data
+    mom_12_1: {sign: 1, lookback: 252, skip: 21}
+    rev_1m: {sign: -1, lookback: 21}
+    vol_126: {sign: -1, window: 126}
+    adv_63: {sign: -1, window: 63}
+    ep: {sign: 1}
+    bp: {sign: 1}
+    roe: {sign: 1}
+
+preprocess:
+  winsor_lower: 0.01
+  winsor_upper: 0.99
+  group_zscore_factors: [ep, bp, roe]
+  financial_types: [bank, securities, insurance]
+
+composite:
+  groups:                         # equal weight across groups, mean within a group
+    momentum: [mom_12_1]
+    volatility: [vol_126]
+    value: [ep, bp]
+    quality: [roe]
+  min_groups: 2
+
+evaluation:
+  n_quantiles: 5
+
+backtest:
+  fee_rate: 0.0015                # per side, on traded value
+  sell_tax_rate: 0.001            # on sell value
+  periods_per_year: 12
+
+ml:                               # fixed before any model is trained; no tuning
+  seed: 42
+  min_train_months: 36
+  retrain_every_months: 12
+  label_gap_months: 1             # drop the month whose label is not yet known
+  ridge:
+    alpha: 10.0
+  lightgbm:
+    objective: regression
+    n_estimators: 300
+    learning_rate: 0.03
+    num_leaves: 15
+    max_depth: 4
+    min_child_samples: 200
+    subsample: 0.8
+    subsample_freq: 1
+    colsample_bytree: 0.8
+    reg_lambda: 1.0
+    n_jobs: 1
+    deterministic: true
+
+robustness:
+  lag_days_alt: 90
+  cost_multiplier: 2.0
+  survivorship_index: null        # fhsc has no VN100 (audit); replacement pending owner decision

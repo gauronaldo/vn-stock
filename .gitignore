@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project: market data must never be committed (source terms forbid redistribution)
+data/
